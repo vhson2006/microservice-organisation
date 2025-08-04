@@ -32,6 +32,10 @@
 $ npm install
 ```
 
+```bash
+$ npm run migration:run
+```
+
 ## Compile and run the project
 
 ```bash
