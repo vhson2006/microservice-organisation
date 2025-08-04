@@ -1,0 +1,86 @@
+[
+  {
+    "type": "new",
+    "typeName": {
+      "en": "New",
+      "vi": "Mới"
+    },
+    "group": "employee_status",
+    "groupName": {
+      "en": "Employee status",
+      "vi": "Trạng thái nhân viên"
+    }
+  },
+  {
+    "type": "actived",
+    "typeName": {
+      "en": "Actived",
+      "vi": "Đang hoạt động"
+    },
+    "group": "employee_status",
+    "groupName": {
+      "en": "Employee status",
+      "vi": "Trạng thái nhân viên"
+    }
+  },
+  {
+    "type": "inactived",
+    "typeName": {
+      "en": "Inactived",
+      "vi": "Tạm dừng"
+    },
+    "group": "employee_status",
+    "groupName": {
+      "en": "Employee status",
+      "vi": "Trạng thái nhân viên"
+    }
+  },
+  {
+    "type": "block",
+    "typeName": {
+      "en": "Block",
+      "vi": "Khóa"
+    },
+    "group": "employee_status",
+    "groupName": {
+      "en": "Employee status",
+      "vi": "Trạng thái nhân viên"
+    }
+  },
+  {
+    "type": "new",
+    "typeName": {
+      "en": "New",
+      "vi": "Mới"
+    },
+    "group": "media_status",
+    "groupName": {
+      "en": "Media status",
+      "vi": "Trạng thái tập tin"
+    }
+  },
+  {
+    "type": "assign",
+    "typeName": {
+      "en": "Assign",
+      "vi": "Đang sử dụng"
+    },
+    "group": "media_status",
+    "groupName": {
+      "en": "Media status",
+      "vi": "Trạng thái tập tin"
+    }
+  },
+  {
+    "type": "unassign",
+    "typeName": {
+      "en": "Unassign",
+      "vi": "Bỏ trống"
+    },
+    "group": "media_status",
+    "groupName": {
+      "en": "Media status",
+      "vi": "Trạng thái tập tin"
+    }
+  }
+]
