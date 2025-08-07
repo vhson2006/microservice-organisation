@@ -12,12 +12,23 @@ import { Media } from 'src/entities/media.entity';
 import { BcryptService } from './hashing/bcrypt.service';
 import { HashingService } from './hashing/hashing.service';
 import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { FILESYSTEM_SERVICE } from 'src/assets/configs/app.constant';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Employee, Role, EmployeeStatus, Avatar, 
       MediaStatus, Media, Common
+    ]),
+    ClientsModule.register([
+      {
+        name: FILESYSTEM_SERVICE,
+        transport: Transport.NATS,
+        options: {
+          servers: process.env.NATS_URL,
+        },
+      },
     ]),
   ],
   controllers: [EmployeeController],

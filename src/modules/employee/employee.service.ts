@@ -1,10 +1,12 @@
+import { 
+  CORRECT, DEFAULT_PAGE, DEFAULT_SIZE, FILESYSTEM_SERVICE, INCORRECT, MAX_SIZE 
+} from 'src/assets/configs/app.constant';
 import { Inject, Injectable, LoggerService } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Employee } from 'src/entities/employee.entity';
 import { In, Like, Not, Repository } from 'typeorm';
-import { CORRECT, DEFAULT_PAGE, DEFAULT_SIZE, INCORRECT, MAX_SIZE } from 'src/assets/configs/app.constant';
 import { EmployeeStatus } from 'src/entities/employee-status.entity';
 import { EMPLOYEE_STATUS, MEDIA_STATUS } from 'src/assets/configs/app.common';
 import { Role } from 'src/entities/role.entity';
@@ -15,6 +17,9 @@ import { Transactional } from 'typeorm-transactional';
 import { sliceIntoChunks, uniqueArray } from 'src/assets/utils/array';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
+import { natsRecord } from 'src/assets/utils/nats';
 
 @Injectable()
 export class EmployeeService {
@@ -25,6 +30,7 @@ export class EmployeeService {
     @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
     @InjectRepository(Avatar) private readonly avatarRepository: Repository<Avatar>,
     @InjectRepository(MediaStatus) private readonly mediaStatusRepository: Repository<MediaStatus>,
+    @Inject(FILESYSTEM_SERVICE) private readonly natsMessageBroker: ClientProxy,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: LoggerService,
     private readonly hashingService: HashingService,
   ) {}
@@ -75,18 +81,8 @@ export class EmployeeService {
           type: role,
         }
       })
-
-      if (avatarId) {
-        const { id: mediaStatusId } = await this.mediaStatusRepository.findOne({
-          where: {
-            type: MEDIA_STATUS.ASSIGN,
-            group: MEDIA_STATUS.GROUP
-          }
-        })
-        await this.avatarRepository.update(avatarId, { statusId: mediaStatusId });
-      }
       
-      const { identifiers } = await this.employeeRepository.insert({
+      let params: any = {
         ...others,
         username, 
         email, 
@@ -94,8 +90,20 @@ export class EmployeeService {
         password: await this.hashingService.hash('default'),
         statusId,
         roleId,
-        avatarId
-      })
+      }
+      if (avatarId) {
+        const url = await lastValueFrom(
+          this.natsMessageBroker.send('retrieveAvatar', natsRecord({id: avatarId})),
+        );
+        console.log(url)
+        const { identifiers: avartaIds } = await this.avatarRepository.insert({
+          url,
+          statusId,
+        })
+        params = {...params, avatarId: avartaIds[0].id}        
+      }
+      
+      const { identifiers } = await this.employeeRepository.insert(params)
       if (Array.isArray(identifiers) && identifiers.length > 0) {
         return { status: CORRECT }
       }
@@ -207,6 +215,7 @@ export class EmployeeService {
           type: role,
         }
       })
+      let params: any =  { ...others, username, email, phone, statusId, roleId }
       if (avatar) {
         await this.avatarRepository.softDelete(employee.avatarId);
         const { id: mediaStatusId } = await this.mediaStatusRepository.findOne({
@@ -215,12 +224,16 @@ export class EmployeeService {
             group: MEDIA_STATUS.GROUP
           }
         })
-        await this.avatarRepository.update(avatar, { statusId: mediaStatusId });
+        const url = await lastValueFrom(
+          this.natsMessageBroker.send('retrieveAvatar', natsRecord({id: avatar})),
+        );
+        const { identifiers: avartaIds } = await this.avatarRepository.insert({
+          url,
+          statusId: mediaStatusId,
+        })
+        params = {...params, avatarId: avartaIds[0].id}
       }
-      const response = await this.employeeRepository.update(
-        employee.id, 
-        { ...others, username, email, phone, statusId, roleId, avatarId: avatar }
-      );
+      const response = await this.employeeRepository.update(employee.id, params);
       if (response.affected > 0) {
         return { status: CORRECT };
       }
