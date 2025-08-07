@@ -92,13 +92,18 @@ export class EmployeeService {
         roleId,
       }
       if (avatarId) {
-        const url = await lastValueFrom(
-          this.natsMessageBroker.send('retrieveAvatar', natsRecord({id: avatarId})),
+        const { status, ...imageResponse } = await lastValueFrom(
+          this.natsMessageBroker.send('retrieveImage', natsRecord({id: avatarId})),
         );
-        console.log(url)
+        const { id: mediaStatusId } = await this.mediaStatusRepository.findOne({
+          where: {
+            type: MEDIA_STATUS.ASSIGN,
+            group: MEDIA_STATUS.GROUP
+          }
+        })
         const { identifiers: avartaIds } = await this.avatarRepository.insert({
-          url,
-          statusId,
+          ...imageResponse,
+          status: mediaStatusId
         })
         params = {...params, avatarId: avartaIds[0].id}        
       }
@@ -218,21 +223,22 @@ export class EmployeeService {
       let params: any =  { ...others, username, email, phone, statusId, roleId }
       if (avatar) {
         await this.avatarRepository.softDelete(employee.avatarId);
+        const { status, ...imageResponse } = await lastValueFrom(
+          this.natsMessageBroker.send('retrieveImage', natsRecord({id: avatar})),
+        );
         const { id: mediaStatusId } = await this.mediaStatusRepository.findOne({
           where: {
             type: MEDIA_STATUS.ASSIGN,
             group: MEDIA_STATUS.GROUP
           }
         })
-        const url = await lastValueFrom(
-          this.natsMessageBroker.send('retrieveAvatar', natsRecord({id: avatar})),
-        );
         const { identifiers: avartaIds } = await this.avatarRepository.insert({
-          url,
-          statusId: mediaStatusId,
+          ...imageResponse,
+          status: mediaStatusId
         })
-        params = {...params, avatarId: avartaIds[0].id}
+        params = { ...params, avatarId: avartaIds[0].id }
       }
+      
       const response = await this.employeeRepository.update(employee.id, params);
       if (response.affected > 0) {
         return { status: CORRECT };
